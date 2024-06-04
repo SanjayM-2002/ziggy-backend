@@ -19,6 +19,7 @@ const placeOrderInput = z.object({
   sourceLng: z.string().min(1, { message: 'Source longitude is required' }),
   destLat: z.string().min(1, { message: 'Destination latitude is required' }),
   destLng: z.string().min(1, { message: 'Destination longitude is required' }),
+  foodName: z.string().min(1, { message: 'Food name is required' }),
 });
 
 // Haversine formula to calculate distance
@@ -126,6 +127,7 @@ orderRouter.post('/placeOrder', async (c) => {
           destLat: zodResponse.data.destLat,
           destLng: zodResponse.data.destLng,
           userId: userId,
+          foodName: zodResponse.data.foodName,
           status: 'assigned',
           deliveryPartnerId: nearestPartner.id,
           expectedDeliveryTime: expectedDeliveryTime,
@@ -184,8 +186,14 @@ orderRouter.put('/checkOrder/:orderId', async (c) => {
       c.status(404);
       return c.json({ error: 'Order not found' });
     }
+    if (order.status === 'delivered') {
+      c.status(200);
+      return c.json({ order, message: 'Order already delivered' });
+    }
 
     if (
+      order.status !== 'delivered' &&
+      order.deliveryPartnerId &&
       order.expectedDeliveryTime &&
       new Date(currentTime) >= order.expectedDeliveryTime
     ) {
@@ -193,14 +201,15 @@ orderRouter.put('/checkOrder/:orderId', async (c) => {
         where: { id: orderId },
         data: { status: 'delivered' },
       });
-
+      console.log('updating isOccupied');
       await prisma.deliveryPartner.update({
-        where: { id: order.deliveryPartnerId! },
+        where: { id: order.deliveryPartnerId },
         data: { isOccupied: false },
       });
+      console.log('finished updating isOccupied');
 
       c.status(200);
-      return c.json(updatedOrder);
+      return c.json({ updatedOrder, message: 'Order delivered' });
     }
 
     c.status(200);
@@ -210,5 +219,55 @@ orderRouter.put('/checkOrder/:orderId', async (c) => {
     return c.json({ error: 'Server error' });
   } finally {
     await prisma.$disconnect();
+  }
+});
+
+orderRouter.get('/assignedOrders', async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  const userId = c.get('jwtPayload');
+  if (!userId) {
+    c.status(403);
+    return c.json({ error: 'Invalid user' });
+  }
+
+  try {
+    const assignedOrders = await prisma.order.findMany({
+      where: {
+        userId: userId,
+        status: 'assigned',
+      },
+    });
+    c.status(200);
+    return c.json(assignedOrders);
+  } catch (error) {
+    c.status(500);
+    return c.json({ error: 'Server error' });
+  }
+});
+
+orderRouter.get('/deliveredOrders', async (c) => {
+  const prisma = new PrismaClient({
+    datasourceUrl: c.env.DATABASE_URL,
+  }).$extends(withAccelerate());
+  const userId = c.get('jwtPayload');
+  if (!userId) {
+    c.status(403);
+    return c.json({ error: 'Invalid user' });
+  }
+
+  try {
+    const deliveredOrders = await prisma.order.findMany({
+      where: {
+        userId: userId,
+        status: 'delivered',
+      },
+    });
+    c.status(200);
+    return c.json(deliveredOrders);
+  } catch (error) {
+    c.status(500);
+    return c.json({ error: 'Server error' });
   }
 });

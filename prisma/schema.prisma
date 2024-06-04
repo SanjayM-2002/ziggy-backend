@@ -37,6 +37,7 @@ model Order {
   sourceLng         String
   destLat           String
   destLng           String
+  foodName          String
   status            String           @default("unassigned")
   userId            String
   deliveryPartnerId String?

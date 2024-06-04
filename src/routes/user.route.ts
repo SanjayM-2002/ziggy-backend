@@ -76,9 +76,7 @@ userRouter.post('/signup', async (c) => {
     const token = await sign({ id: newUser.id }, c.env.JWT_SECRET);
     c.status(201);
     return c.json({
-      id: newUser.id,
-      name: newUser.fullname,
-      email: newUser.email,
+      details: { id: newUser.id, name: newUser.fullname, email: newUser.email },
       token: token,
     });
   } catch (error) {
@@ -119,9 +117,11 @@ userRouter.post('/login', async (c) => {
     const token = await sign({ id: isUserExists.id }, c.env.JWT_SECRET);
     c.status(201);
     return c.json({
-      id: isUserExists.id,
-      name: isUserExists.fullname,
-      email: isUserExists.email,
+      details: {
+        id: isUserExists.id,
+        name: isUserExists.fullname,
+        email: isUserExists.email,
+      },
       token: token,
     });
   } catch (error) {
