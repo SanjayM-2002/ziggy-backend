@@ -1,12 +1,3 @@
-```
-npm install
-npm run dev
-```
-
-```
-npm run deploy
-```
-
 # Ziggy
 
 Ziggy is a simple food ordering application, where users can create account and order their favourite food.
@@ -72,6 +63,33 @@ npm i
 
 ```bash
 npm run dev
+```
+
+- **NOTE** If you make changes in the database i.e `schema.prisma` file you need to migrate using the follwing command to tell the database the the table you had added is been altered.
+
+```bash
+npx prisma migrate dev --name init_schema
+```
+
+- It will generate migration folder inside prisma.
+- And then Generate the prisma client
+
+```
+npx prisma generate --no-engine
+```
+
+### To Deploy
+
+```
+npx wrangler whoami
+```
+
+```
+npx wrangler login
+```
+
+```
+npm run deploy
 ```
 
 ## Frontend Repo
